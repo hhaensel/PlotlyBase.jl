@@ -87,7 +87,7 @@ mutable struct Plot{TT<:AbstractVector{<:AbstractTrace},TL<:AbstractLayout,TF<:A
 end
 
 # Default `convert` fallback constructor
-Plot(p::Plot) = p
+@inline Plot(p::AbstractPlot) = p
 
 # include the rest of the core parts of the package
 include("util.jl")
