@@ -29,6 +29,8 @@ _symbol_dict(d::AbstractDict) =
 
 const _Maybe{T} = Union{Missing,T}
 
+abstract type AbstractPlot end
+
 abstract type AbstractPlotlyAttribute end
 
 mutable struct PlotlyAttribute{T <: AbstractDict{Symbol,Any}} <: AbstractPlotlyAttribute
@@ -74,8 +76,9 @@ function get_plotschema()
     return PLOTSCHEMA
 end
 
+
 # core plot object
-mutable struct Plot{TT<:AbstractVector{<:AbstractTrace},TL<:AbstractLayout,TF<:AbstractVector{<:PlotlyFrame}}
+mutable struct Plot{TT<:AbstractVector{<:AbstractTrace},TL<:AbstractLayout,TF<:AbstractVector{<:PlotlyFrame}} <: AbstractPlot
     data::TT
     layout::TL
     frames::TF
@@ -124,7 +127,7 @@ end
 export
 
     # core types
-    Plot, GenericTrace, PlotlyFrame, Layout, Shape, AbstractTrace, AbstractLayout,
+    AbstractPlot, Plot, GenericTrace, PlotlyFrame, Layout, Shape, AbstractTrace, AbstractLayout,
     PlotConfig, Spec, Subplots, Inset,
 
     # plotly.js api methods
