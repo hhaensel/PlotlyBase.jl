@@ -87,7 +87,7 @@ mutable struct Plot{TT<:AbstractVector{<:AbstractTrace},TL<:AbstractLayout,TF<:A
 end
 
 # Default `convert` fallback constructor
-@inline Plot(p::AbstractPlot) = p
+@inline Plot(p::PlotType) where PlotType <: AbstractPlot = p
 
 # include the rest of the core parts of the package
 include("util.jl")
@@ -158,7 +158,8 @@ export
 function __init__()
     @require IJulia="7073ff75-c697-5162-941a-fcdaad2a7d2a" begin
 
-        function IJulia.display_dict(p::Plot)
+        function IJulia.display_dict(ap::AbstractPlot)
+            p = Plot(ap)
             Dict(
                 "application/vnd.plotly.v1+json" => JSON.lower(p),
                 "text/plain" => sprint(show, "text/plain", p),
@@ -175,8 +176,8 @@ function __init__()
     @require Colors="5ae59095-9a9b-59fe-a467-6f913c188581" begin
         _json_lower(a::Colors.Colorant) = string("#", Colors.hex(a))
     end
-    @require JSON2="2535ab7d-5cd8-5a07-80ac-9b1792aadce3" JSON2.write(io::IO, p::Plot) = begin
-        data = JSON.lower(p)
+    @require JSON2="2535ab7d-5cd8-5a07-80ac-9b1792aadce3" JSON2.write(io::IO, p::AbstractPlot) = begin
+        data = JSON.lower(Plot(p))
         pop!(data, :config, nothing)
         JSON.print(io, data)
     end

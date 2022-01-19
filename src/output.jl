@@ -40,7 +40,7 @@ end
 """
     to_html(
         io::IO,
-        p::Plot;
+        p::AbstractPlot;
         autoplay::Bool=true,
         include_plotlyjs::Union{String,Missing}="cdn",
         include_mathjax::Union{String,Missing}="cdn",
@@ -81,7 +81,7 @@ end
 """
 function to_html(
         io::IO,
-        p::Plot;
+        ap::AbstractPlot;
         autoplay::Bool=true,
         include_plotlyjs::Union{String,Missing}="cdn",
         include_mathjax::Union{String,Missing}="cdn",
@@ -92,6 +92,7 @@ function to_html(
         default_height::String="100%"
     )
     # get lowered form
+    p = Plot(ap)
     js = JSON.lower(p)
     jdata = js[:data]
     jlayout = js[:layout]
@@ -256,18 +257,18 @@ end
 
 # jupyterlab/nteract integration
 Base.Multimedia.istextmime(::MIME"application/vnd.plotly.v1+json") = true
-function Base.show(io::IO, ::MIME"application/vnd.plotly.v1+json", p::Plot)
-    JSON.print(io, p)
+function Base.show(io::IO, ::MIME"application/vnd.plotly.v1+json", p::AbstractPlot)
+    JSON.print(io, Plot(p))
 end
 
-function Base.show(io::IO, ::MIME"text/plain", p::Plot)
+function Base.show(io::IO, ::MIME"text/plain", p::AbstractPlot)
     println(io, """
-    data: $(json(map(_describe, p.data), 2))
-    layout: "$(_describe(p.layout))"
+    data: $(json(map(_describe, Plot(p).data), 2))
+    layout: "$(_describe(Plot(p).layout))"
     """)
 end
 
-Base.show(io::IO, ::MIME"text/html", p::Plot; kwargs...) = to_html(io, p; kwargs...)
+Base.show(io::IO, ::MIME"text/html", p::AbstractPlot; kwargs...) = to_html(io, p; kwargs...)
 
 # integration with vscode and Juno
 function Base.show(io::IO, ::MIME"application/prs.juno.plotpane+html", p::AbstractPlot)

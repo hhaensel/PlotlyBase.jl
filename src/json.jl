@@ -43,7 +43,8 @@ function _maybe_set_attr!(p::Plot, k::Symbol, v::Cycler)
     end
 end
 
-function JSON.lower(p::Plot)
+function JSON.lower(ap::AbstractPlot)
+    p = Plot(ap)
     out = Dict(
         :data => _json_lower(p.data),
         :layout => _json_lower(p.layout),

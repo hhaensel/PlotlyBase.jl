@@ -14,13 +14,13 @@ prep_kwargs(pairs::AbstractVector) = Dict(map(prep_kwarg, pairs))
 prep_kwargs(pairs::AbstractDict) = Dict(prep_kwarg((k, v)) for (k, v) in pairs)
 
 """
-    size(::PlotlyBase.Plot)
+    size(::PlotlyBase.AbstractPlot)
 
 Return the size of the plot in pixels. Obtained from the `layout.width` and
 `layout.height` fields.
 """
-Base.size(p::Plot) = (get(p.layout.fields, :width, 800),
-                      get(p.layout.fields, :height, 450))
+Base.size(p::AbstractPlot) = (get(Plot(p).layout.fields, :width, 800),
+                              get(Plot(p).layout.fields, :height, 450))
 
 const _TRACE_TYPES = [
     :bar, :barpolar, :box, :candlestick, :carpet, :choropleth,
@@ -44,8 +44,8 @@ for t in _TRACE_TYPES
 end
 
 Base.copy(hf::HF) where {HF <: HasFields} = HF(deepcopy(hf.fields))
-Base.copy(p::Plot) = Plot(AbstractTrace[copy(t) for t in p.data], copy(p.layout))
-fork(p::Plot) = Plot(deepcopy(p.data), copy(p.layout))
+Base.copy(p::AbstractPlot) = Plot(AbstractTrace[copy(t) for t in Plot(p).data], copy(Plot(p).layout))
+fork(p::PlotType) where PlotType <: AbstractPlot = PlotType(Plot(deepcopy(Plot(p).data), copy(Plot(p).layout)))
 
 # -------------- #
 # Javascript API #
@@ -130,36 +130,36 @@ function relayout!(dest::Layout, src::Layout; kwargs...)
 end
 
 """
-    relayout!(p::Plot, update::AbstractDict=Dict(); kwargs...)
+    relayout!(p::AbstractPlot, update::AbstractDict=Dict(); kwargs...)
 
 Update `p.layout` on using update dict and/or kwargs
 """
-relayout!(p::Plot, args...; kwargs...) =
-    relayout!(p.layout, args...; kwargs...)
+relayout!(p::AbstractPlot, args...; kwargs...) =
+    relayout!(Plot(p).layout, args...; kwargs...)
 
 """
     restyle!(gt::GenericTrace, i::Int=1, update::AbstractDict=Dict(); kwargs...)
 
 Update trace `gt` using dict/kwargs, assuming it was the `i`th ind in a call
-to `restyle!(::Plot, ...)`
+to `restyle!(::AbstractPlot, ...)`
 """
 restyle!(gt::GenericTrace, i::Int=1, update::AbstractDict=Dict(); kwargs...) =
     _update_fields(gt, i, update; kwargs...)
 
 """
-    restyle!(p::Plot, ind::Int=1, update::AbstractDict=Dict(); kwargs...)
+    restyle!(p::AbstractPlot, ind::Int=1, update::AbstractDict=Dict(); kwargs...)
 
 Update `p.data[ind]` using update dict and/or kwargs
 """
-restyle!(p::Plot, ind::Int, update::AbstractDict=Dict(); kwargs...) =
-    restyle!(p.data[ind], 1, update; kwargs...)
+restyle!(p::AbstractPlot, ind::Int, update::AbstractDict=Dict(); kwargs...) =
+    restyle!(Plot(p).data[ind], 1, update; kwargs...)
 
 """
-    restyle!(::Plot, ::AbstractVector{Int}, ::AbstractDict=Dict(); kwargs...)
+    restyle!(::AbstractPlot, ::AbstractVector{Int}, ::AbstractDict=Dict(); kwargs...)
 
 Update specific traces at `p.data[inds]` using update dict and/or kwargs
 """
-function restyle!(p::Plot, inds::AbstractVector{Int},
+function restyle!(p::AbstractPlot, inds::AbstractVector{Int},
                   update::AbstractDict=Dict(); kwargs...)
     N = length(inds)
     kw = Dict{Symbol,Any}(kwargs)
@@ -171,16 +171,16 @@ function restyle!(p::Plot, inds::AbstractVector{Int},
         end
     end
 
-    map((ind, i) -> restyle!(p.data[ind], i, update; kw...), inds, 1:N)
+    map((ind, i) -> restyle!(Plot(p).data[ind], i, update; kw...), inds, 1:N)
 end
 
 """
-    restyle!(p::Plot, update::AbstractDict=Dict(); kwargs...)
+    restyle!(p::AbstractPlot, update::AbstractDict=Dict(); kwargs...)
 
 Update all traces using update dict and/or kwargs
 """
-restyle!(p::Plot, update::AbstractDict=Dict(); kwargs...) =
-    restyle!(p, 1:length(p.data), update; kwargs...)
+restyle!(p::AbstractPlot, update::AbstractDict=Dict(); kwargs...) =
+    restyle!(p, 1:length(Plot(p).data), update; kwargs...)
 
 """
 The `restyle!` method follows the semantics of the `Plotly.restyle` function in
@@ -219,7 +219,7 @@ restyle!(p, 1:3, marker_color=(["red", "green"], "blue"))
 restyle!
 
 function update!(
-        p::Plot, ind::Union{AbstractVector{Int},Int},
+        p::AbstractPlot, ind::Union{AbstractVector{Int},Int},
         update::AbstractDict=Dict(); layout::Layout=Layout(),
         kwargs...
     )
@@ -228,8 +228,8 @@ function update!(
     p
 end
 
-function update!(p::Plot, update=Dict(); layout::Layout=Layout(), kwargs...)
-    update!(p, 1:length(p.data), update; layout=layout, kwargs...)
+function update!(p::AbstractPlot, update=Dict(); layout::Layout=Layout(), kwargs...)
+    update!(p, 1:length(Plot(p).data), update; layout=layout, kwargs...)
 end
 
 """
@@ -305,39 +305,39 @@ julia> print(json(p, 2))
 update!
 
 """
-    addtraces!(p::Plot, traces::AbstractTrace...)
+    addtraces!(p::AbstractPlot, traces::AbstractTrace...)
 
 Add trace(s) to the end of the Plot's array of data
 """
-addtraces!(p::Plot, traces::AbstractTrace...) = push!(p.data, traces...)
+addtraces!(p::AbstractPlot, traces::AbstractTrace...) = push!(Plot(p).data, traces...)
 
 """
-    addtraces!(p::Plot, i::Int, traces::AbstractTrace...)
+    addtraces!(p::AbstractPlot, i::Int, traces::AbstractTrace...)
 
 Add trace(s) at a specified location in the Plot's array of data.
 
 The new traces will start at index `p.data[i]`
 """
-function addtraces!(p::Plot, i::Int, traces::AbstractTrace...)
-    new_data = vcat(p.data[1:i - 1], traces..., p.data[i:end])
-    p.data = new_data
+function addtraces!(p::AbstractPlot, i::Int, traces::AbstractTrace...)
+    new_data = vcat(Plot(p).data[1:i - 1], traces..., Plot(p).data[i:end])
+    Plot(p).data = new_data
 end
 
 """
-    deletetraces!(p::Plot, inds::Int...) =
+    deletetraces!(p::AbstractPlot, inds::Int...) =
 
 Remove the traces at the specified indices
 """
-deletetraces!(p::Plot, inds::Int...) =
-    (p.data = p.data[setdiff(1:length(p.data), inds)])
+deletetraces!(p::AbstractPlot, inds::Int...) =
+    (Plot(p).data = Plot(p).data[setdiff(1:length(Plot(p).data), inds)])
 
 """
-    movetraces!(p::Plot, to_end::Int...)
+    movetraces!(p::AbstractPlot, to_end::Int...)
 
 Move one or more traces to the end of the data array"
 """
-movetraces!(p::Plot, to_end::Int...) =
-    (p.data = p.data[vcat(setdiff(1:length(p.data), to_end), to_end...)])
+movetraces!(p::AbstractPlot, to_end::Int...) =
+    (Plot(p).data = Plot(p).data[vcat(setdiff(1:length(Plot(p).data), to_end), to_end...)])
 
 function _move_one!(x::AbstractArray, from::Int, to::Int)
     el = splice!(x, from)  # extract the element
@@ -346,37 +346,37 @@ function _move_one!(x::AbstractArray, from::Int, to::Int)
 end
 
 """
-    movetraces!(p::Plot, src::AbstractVector{Int}, dest::AbstractVector{Int})
+    movetraces!(p::AbstractPlot, src::AbstractVector{Int}, dest::AbstractVector{Int})
 
 Move traces from indices `src` to indices `dest`.
 
 Both `src` and `dest` must be `Vector{Int}`
 """
-movetraces!(p::Plot, src::AbstractVector{Int}, dest::AbstractVector{Int}) =
-    (map((i, j) -> _move_one!(p.data, i, j), src, dest); p)
+movetraces!(p::AbstractPlot, src::AbstractVector{Int}, dest::AbstractVector{Int}) =
+    (map((i, j) -> _move_one!(Plot(p).data, i, j), src, dest); p)
 
-function purge!(p::Plot)
-    empty!(p.data)
-    p.layout = Layout()
+function purge!(p::AbstractPlot)
+    empty!(Plot(p).data)
+    Plot(p).layout = Layout()
     nothing
 end
 
-function react!(p::Plot, data::AbstractVector{<:AbstractTrace}, layout::Layout)
-    p.data = data
-    p.layout = layout
+function react!(p::AbstractPlot, data::AbstractVector{<:AbstractTrace}, layout::Layout)
+    Plot(p).data = data
+    Plot(p).layout = layout
     nothing
 end
 
 # no-op here
-redraw!(p::Plot) = nothing
-to_image(p::Plot; kwargs...) = nothing
-download_image(p::Plot; kwargs...) = nothing
+redraw!(p::AbstractPlot) = nothing
+to_image(p::AbstractPlot; kwargs...) = nothing
+download_image(p::AbstractPlot; kwargs...) = nothing
 
 _tovec(v) = _tovec([v])
 _tovec(v::Vector) = eltype(v) <: Vector ? v : Vector[v]
 
 """
-    extendtraces!(::Plot, ::Dict{Union{Symbol,AbstractString},AbstractVector{Vector{Any}}}), indices, maxpoints)
+    extendtraces!(::AbstractPlot, ::Dict{Union{Symbol,AbstractString},AbstractVector{Vector{Any}}}), indices, maxpoints)
 
 Extend one or more traces with more data. A few notes about the structure of the
 update dict are important to remember:
@@ -405,11 +405,11 @@ extendtraces!(p, Dict("marker.size"=>Vector[[1, 3], [5, 5, 6]]), [3, 5], 10)
 ```
 
 """
-function extendtraces!(p::Plot, update::AbstractDict, indices::AbstractVector{Int}=[1],
+function extendtraces!(p::AbstractPlot, update::AbstractDict, indices::AbstractVector{Int}=[1],
                        maxpoints=-1)
     # TODO: maxpoints not handled here
     for (ix, p_ix) in enumerate(indices)
-        tr = p.data[p_ix]
+        tr = Plot(p).data[p_ix]
         for k in keys(update)
             v = update[k][ix]
             tr[k] = push!(tr[k], v...)
@@ -418,18 +418,18 @@ function extendtraces!(p::Plot, update::AbstractDict, indices::AbstractVector{In
 end
 
 """
-    prependtraces!(p::Plot, update::AbstractDict, indices::AbstractVector{Int}=[1],
+    prependtraces!(p::AbstractPlot, update::AbstractDict, indices::AbstractVector{Int}=[1],
                     maxpoints=-1)
 
 The API for `prependtraces` is equivalent to that for `extendtraces` except that
 the data is added to the front of the traces attributes instead of the end. See
 Those docstrings for more information
 """
-function prependtraces!(p::Plot, update::AbstractDict, indices::AbstractVector{Int}=[1],
+function prependtraces!(p::AbstractPlot, update::AbstractDict, indices::AbstractVector{Int}=[1],
                         maxpoints=-1)
     # TODO: maxpoints not handled here
     for (ix, p_ix) in enumerate(indices)
-        tr = p.data[p_ix]
+        tr = Plot(p).data[p_ix]
         for k in keys(update)
             v = update[k][ix]
             tr[k] = vcat(v, tr[k])
@@ -440,13 +440,13 @@ end
 
 for f in (:extendtraces!, :prependtraces!)
     @eval begin
-        $(f)(p::Plot, inds::Vector{Int}=[1], maxpoints=-1; update...) =
+        $(f)(p::AbstractPlot, inds::Vector{Int}=[1], maxpoints=-1; update...) =
             ($f)(p, Dict(map(x -> (x[1], _tovec(x[2])), update)), inds, maxpoints)
 
-        $(f)(p::Plot, ind::Int, maxpoints=-1; update...) =
+        $(f)(p::AbstractPlot, ind::Int, maxpoints=-1; update...) =
             ($f)(p, [ind], maxpoints; update...)
 
-        $(f)(p::Plot, update::AbstractDict, ind::Int, maxpoints=-1) =
+        $(f)(p::AbstractPlot, update::AbstractDict, ind::Int, maxpoints=-1) =
             ($f)(p, update, [ind], maxpoints)
     end
 end
@@ -455,7 +455,7 @@ end
 for f in [:restyle, :relayout, :update, :addtraces, :deletetraces,
           :movetraces, :redraw, :extendtraces, :prependtraces, :purge, :react]
     f! = Symbol(f, "!")
-    @eval function $(f)(p::Plot, args...; kwargs...)
+    @eval function $(f)(p::AbstractPlot, args...; kwargs...)
         out = fork(p)
         $(f!)(out, args...; kwargs...)
         out
@@ -491,25 +491,25 @@ function _add_trace!(p::Plot, trace::GenericTrace, row::ROW_COL_TYPE, col::ROW_C
 end
 
 
-function add_trace!(p::Plot, trace::GenericTrace; row::ROW_COL_TYPE=1, col::ROW_COL_TYPE=1, secondary_y::Bool=false)
+function add_trace!(p::AbstractPlot, trace::GenericTrace; row::ROW_COL_TYPE=1, col::ROW_COL_TYPE=1, secondary_y::Bool=false)
     # NOTE: This causes the domain to not be set for the first plot (row=1, col=1)
     # if row == 1 && col == 1
     #     push!(p.data, trace)
     #     return p
     # end
 
-    _check_row_col_arg(p.layout, row, "row", 1)
-    _check_row_col_arg(p.layout, col, "col", 2)
+    _check_row_col_arg(Plot(p).layout, row, "row", 1)
+    _check_row_col_arg(Plot(p).layout, col, "col", 2)
 
     gridref_row_ix = row isa String ? Colon() : row
     gridref_col_ix = col isa String ? Colon() : col
 
-    _add_trace!(p, trace, gridref_row_ix, gridref_col_ix, secondary_y)
+    _add_trace!(Plot(p), trace, gridref_row_ix, gridref_col_ix, secondary_y)
     p
 end
 
 ## internal helpers
-_get_colorway(p::Plot) = _get_colorway(p.layout)
+_get_colorway(p::Plot) = _get_colorway(Plot(p).layout)
 function _get_colorway(l::Layout)
     D3_colorway = [
         "#1F77B4",
@@ -618,7 +618,7 @@ const _layout_obj_updaters = [:update_xaxes! => :xaxis, :update_yaxes! => :yaxis
 
 for (k1, k2) in _layout_obj_updaters
     @eval $(k1)(l::Layout, with::PlotlyAttribute=attr(); kwargs...) = _update_all_layout_type!(l, $(Meta.quot(k2)), merge(with, attr(;kwargs...)))
-    @eval $(k1)(p::Plot, with::PlotlyAttribute=attr(); kwargs...) = $(k1)(p.layout, merge(with, attr(;kwargs...)))
+    @eval $(k1)(p::AbstractPlot, with::PlotlyAttribute=attr(); kwargs...) = $(k1)(Plot(p).layout, merge(with, attr(;kwargs...)))
     @eval export $k1
 end
 
@@ -631,7 +631,7 @@ for (k1, k2) in _layout_vector_updaters
             merge!(val, final_with)
         end
     end
-    @eval $(k1)(p::Plot, with::PlotlyAttribute=attr(); kwargs...) = $(k1)(p.layout, merge(with, attr(;kwargs...)))
+    @eval $(k1)(p::AbstractPlot, with::PlotlyAttribute=attr(); kwargs...) = $(k1)(Plot(p).layout, merge(with, attr(;kwargs...)))
     @eval export $(k1)
 end
 

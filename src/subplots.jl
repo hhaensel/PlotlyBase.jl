@@ -87,8 +87,8 @@ _is3d(s::AbstractString) = s in ["surface", "mesh3d", "scatter3d"]
 # else (maybe if trace didn't have a :type field set)
 _is3d(x::Any) = false
 
-function _cat(rows::Tuple{Vararg{Int}}, ps::Plot...)
-    copied_plots = Plot[copy(p) for p in ps]
+function _cat(rows::Tuple{Vararg{Int}}, ps::PlotType...) where PlotType <: AbstractPlot
+    copied_plots = Plot[copy(Plot(p)) for p in ps]
     subplot_titles = any(map(x -> haskey(x.layout.fields, :title) ||
                                   haskey(x.layout.fields, "title"), ps))
     layout = gen_layout(rows, subplot_titles)
@@ -123,12 +123,12 @@ function _cat(rows::Tuple{Vararg{Int}}, ps::Plot...)
     Plot(vcat([p.data for p in copied_plots]...), layout)
 end
 
-_cat(nr::Int, nc::Int, ps::Plot...) = _cat(Tuple(fill(nc, nr)), ps...)
+_cat(nr::Int, nc::Int, ps::AbstractPlot...) = _cat(Tuple(fill(nc, nr)), ps...)
 
-Base.hcat(ps::Plot...) = _cat(1, length(ps), ps...)
-Base.vcat(ps::Plot...) = _cat(length(ps), 1,  ps...)
+Base.hcat(ps::AbstractPlot...) = _cat(1, length(ps), ps...)
+Base.vcat(ps::AbstractPlot...) = _cat(length(ps), 1,  ps...)
 
-Base.hvcat(rows::Tuple{Vararg{Int}}, ps::Plot...) = _cat(rows, ps...)
+Base.hvcat(rows::Tuple{Vararg{Int}}, ps::AbstractPlot...) = _cat(rows, ps...)
 
 
 # implementation of algorithms from plotly.py/packages/python/plotly/plotly/subplots.py
