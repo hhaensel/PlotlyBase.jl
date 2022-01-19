@@ -241,10 +241,10 @@ function to_html(
     return print(io, html_div)
 end  # function
 
-function savejson(p::Plot, fn::AbstractString)
+function savejson(p::AbstractPlot, fn::AbstractString)
     ext = split(fn, ".")[end]
     if ext == "json"
-        open(f -> print(f, json(p)), fn, "w")
+        open(f -> print(f, json(_get_Plot(p))), fn, "w")
         return p
     else
         msg = "PlotlyBase can only save figures as JSON. For all other"
@@ -270,11 +270,11 @@ end
 Base.show(io::IO, ::MIME"text/html", p::Plot; kwargs...) = to_html(io, p; kwargs...)
 
 # integration with vscode and Juno
-function Base.show(io::IO, ::MIME"application/prs.juno.plotpane+html", p::Plot)
-    show(io, MIME("text/html"), p; include_mathjax="cdn", include_plotlyjs="cdn")
+function Base.show(io::IO, ::MIME"application/prs.juno.plotpane+html", p::AbstractPlot)
+    show(io, MIME("text/html"), _get_Plot(p); include_mathjax="cdn", include_plotlyjs="cdn")
 end
 
-Base.show(io::IO, p::Plot) = show(io, MIME("text/plain"), p)
+Base.show(io::IO, p::AbstractPlot) = show(io, MIME("text/plain"), _get_Plot(p))
 
 import REPL
 
@@ -291,10 +291,10 @@ function launch_browser(tmppath::String)
     end
 end
 
-function Base.display(::REPL.REPLDisplay, p::Plot)
+function Base.display(::REPL.REPLDisplay, p::AbstractPlot)
     tmppath = string(tempname(), ".plotlyjs-jl.html")
     open(tmppath, "w") do io
-        show(io, MIME("text/html"), p; include_mathjax="cdn", include_plotlyjs="cdn")
+        show(io, MIME("text/html"), _get_Plot(p); include_mathjax="cdn", include_plotlyjs="cdn")
     end
     launch_browser(tmppath) # Open the browser
 end
