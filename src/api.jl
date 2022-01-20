@@ -45,7 +45,10 @@ end
 
 Base.copy(hf::HF) where {HF <: HasFields} = HF(deepcopy(hf.fields))
 Base.copy(p::AbstractPlot) = Plot(AbstractTrace[copy(t) for t in Plot(p).data], copy(Plot(p).layout))
-fork(p::PlotType) where PlotType <: AbstractPlot = PlotType(Plot(deepcopy(Plot(p).data), copy(Plot(p).layout)))
+function fork(p::PlotType) where PlotType <: AbstractPlot 
+    plt = Plot(deepcopy(Plot(p).data), copy(Plot(p).layout))
+    PlotType <: Plot ? plt : PlotType(plt)
+end
 
 # -------------- #
 # Javascript API #
